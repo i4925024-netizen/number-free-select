@@ -1,243 +1,46 @@
-(() => {
-  'use strict';
-
-  const editor = document.getElementById('editor');
-  const gutter = document.getElementById('gutter');
-  const status = document.getElementById('status');
-  const stats = document.getElementById('stats');
-  const fileInput = document.getElementById('fileInput');
-  const findPanel = document.getElementById('findPanel');
-  const findInput = document.getElementById('findInput');
-  const replaceInput = document.getElementById('replaceInput');
-
-  let history = [];
-  let historyIndex = -1;
-  let lastSavedText = '';
-
-  function getText() { return editor.innerText.replace(/\r\n/g, '\n'); }
-
-  function setText(text, saveHistory = true) {
-    editor.textContent = text;
-    if (saveHistory) pushHistory();
-    updateAll();
-  }
-
-  function pushHistory() {
-    const text = getText();
-    if (history[historyIndex] === text) return;
-    history = history.slice(0, historyIndex + 1);
-    history.push(text);
-    if (history.length > 100) history.shift();
-    historyIndex = history.length - 1;
-  }
-
-  function restoreHistory(index) {
-    if (index < 0 || index >= history.length) return;
-    historyIndex = index;
-    editor.textContent = history[historyIndex];
-    placeCaretAtEndIfNeeded();
-    updateAll();
-  }
-
-  function undo() { if (historyIndex > 0) restoreHistory(historyIndex - 1); }
-  function redo() { if (historyIndex < history.length - 1) restoreHistory(historyIndex + 1); }
-
-  function placeCaretAtEndIfNeeded() {
-    const sel = window.getSelection();
-    if (!sel) return;
-    const range = document.createRange();
-    range.selectNodeContents(editor);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  function selectedText() {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return '';
-    const range = sel.getRangeAt(0);
-    if (!editor.contains(range.commonAncestorContainer)) return '';
-    return sel.toString();
-  }
-
-  function selectionLength() { return selectedText().length; }
-
-  async function copySelection() {
-    const text = selectedText();
-    if (!text) return setStatus('Nothing selected');
-    try {
-      await navigator.clipboard.writeText(text);
-      setStatus(`Copied ${text.length} characters`);
-    } catch (_) {
-      document.execCommand('copy');
-      setStatus(`Copied ${text.length} characters`);
-    }
-  }
-
-  function deleteSelection() {
-    if (!selectedText()) return setStatus('Nothing selected');
-    document.execCommand('delete');
-    pushHistory();
-    updateAll();
-    setStatus('Selection deleted');
-  }
-
-  async function pasteText() {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text) return setStatus('Clipboard is empty');
-      document.execCommand('insertText', false, text);
-      pushHistory();
-      updateAll();
-      setStatus('Pasted text');
-    } catch (_) {
-      setStatus('Use Ctrl+V to paste');
-    }
-  }
-
-  async function cutSelection() {
-    const text = selectedText();
-    if (!text) return setStatus('Nothing selected');
-    try { await navigator.clipboard.writeText(text); } catch (_) {}
-    document.execCommand('delete');
-    pushHistory();
-    updateAll();
-    setStatus(`Cut ${text.length} characters`);
-  }
-
-  function replaceCurrent() {
-    const find = findInput.value;
-    const replacement = replaceInput.value;
-    if (!find) return setStatus('Enter text to find');
-    const current = selectedText();
-    if (current === find) {
-      document.execCommand('insertText', false, replacement);
-      pushHistory(); updateAll(); setStatus('Replaced selection'); return;
-    }
-    findNext(false);
-  }
-
-  function findNext(forward = true) {
-    const query = findInput.value;
-    if (!query) return setStatus('Enter text to find');
-    const text = getText();
-    const sel = window.getSelection();
-    let start = 0;
-    if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
-      const range = sel.getRangeAt(0);
-      start = textIndexFromDomPoint(range.endContainer, range.endOffset);
-    }
-    let idx = forward ? text.indexOf(query, start) : text.lastIndexOf(query, Math.max(0, start - query.length - 1));
-    if (idx < 0) idx = forward ? text.indexOf(query) : text.lastIndexOf(query);
-    if (idx < 0) return setStatus('Not found');
-    selectTextRange(idx, idx + query.length);
-    setStatus(`Found at character ${idx + 1}`);
-  }
-
-  function textIndexFromDomPoint(node, offset) {
-    const range = document.createRange();
-    range.selectNodeContents(editor);
-    try { range.setEnd(node, offset); } catch (_) { return 0; }
-    return range.toString().length;
-  }
-
-  function domPointFromTextIndex(index) {
-    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
-    let remaining = index;
-    let node;
-    while ((node = walker.nextNode())) {
-      if (remaining <= node.nodeValue.length) return { node, offset: remaining };
-      remaining -= node.nodeValue.length;
-    }
-    return { node: editor, offset: editor.childNodes.length };
-  }
-
-  function selectTextRange(start, end) {
-    const a = domPointFromTextIndex(start);
-    const b = domPointFromTextIndex(end);
-    const range = document.createRange();
-    range.setStart(a.node, a.offset);
-    range.setEnd(b.node, b.offset);
-    const sel = window.getSelection();
-    sel.removeAllRanges(); sel.addRange(range);
-    editor.focus();
-  }
-
-  function replaceAll() {
-    const find = findInput.value;
-    if (!find) return setStatus('Enter text to find');
-    const replacement = replaceInput.value;
-    const text = getText();
-    const count = text.split(find).length - 1;
-    if (!count) return setStatus('Not found');
-    setText(text.split(find).join(replacement));
-    setStatus(`Replaced ${count} occurrence${count === 1 ? '' : 's'}`);
-  }
-
-  function updateGutter() {
-    const lines = Math.max(1, getText().split('\n').length);
-    gutter.textContent = Array.from({length: lines}, (_, i) => i + 1).join('\n');
-  }
-
-  function updateStats() {
-    const text = getText();
-    const lines = text ? text.split('\n').length : 0;
-    stats.textContent = `Lines: ${lines} | Characters: ${text.length} | Selected: ${selectionLength()}`;
-  }
-
-  function updateAll() { updateGutter(); updateStats(); }
-  function setStatus(message) { status.textContent = message; updateStats(); }
-
-  editor.addEventListener('input', () => { pushHistory(); updateAll(); setStatus('Edited'); });
-  editor.addEventListener('keyup', updateAll);
-  editor.addEventListener('mouseup', updateAll);
-  editor.addEventListener('touchend', updateAll, {passive: true});
-
-  document.addEventListener('keydown', (e) => {
-    if (!editor.contains(document.activeElement) && document.activeElement !== editor) return;
-    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
-    if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) { e.preventDefault(); redo(); return; }
-    if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '    '); pushHistory(); updateAll(); }
-  });
-
-  document.getElementById('openBtn').onclick = () => fileInput.click();
-  fileInput.onchange = async () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    const text = await file.text();
-    setText(text);
-    lastSavedText = text;
-    setStatus(`Opened ${file.name}`);
-    fileInput.value = '';
-  };
-
-  document.getElementById('saveBtn').onclick = () => {
-    const blob = new Blob([getText()], {type: 'text/plain;charset=utf-8'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'number-free-select.txt';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    lastSavedText = getText();
-    setStatus('TXT saved');
-  };
-
-  document.getElementById('copyBtn').onclick = copySelection;
-  document.getElementById('cutBtn').onclick = cutSelection;
-  document.getElementById('pasteBtn').onclick = pasteText;
-  document.getElementById('deleteBtn').onclick = deleteSelection;
-  document.getElementById('selectAllBtn').onclick = () => { editor.focus(); const r=document.createRange(); r.selectNodeContents(editor); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); updateAll(); setStatus('All text selected'); };
-  document.getElementById('clearBtn').onclick = () => { if (confirm('Clear all text?')) { setText(''); setStatus('Editor cleared'); } };
-  document.getElementById('findBtn').onclick = () => { findPanel.classList.toggle('hidden'); if (!findPanel.classList.contains('hidden')) findInput.focus(); };
-  document.getElementById('closeFindBtn').onclick = () => findPanel.classList.add('hidden');
-  document.getElementById('findNextBtn').onclick = () => findNext(true);
-  document.getElementById('findPrevBtn').onclick = () => findNext(false);
-  document.getElementById('replaceBtn').onclick = replaceCurrent;
-  document.getElementById('replaceAllBtn').onclick = replaceAll;
-  document.getElementById('themeBtn').onclick = () => { document.body.classList.toggle('dark'); localStorage.setItem('nfs-dark', document.body.classList.contains('dark') ? '1' : '0'); };
-
-  if (localStorage.getItem('nfs-dark') === '1') document.body.classList.add('dark');
-  editor.focus();
-  pushHistory();
-  updateAll();
+(()=>{'use strict';
+const DB_NAME='wa_contact_manager_v6',STORE='contacts',PAGE_SIZE=100;
+let db=null,items=[],filtered=[],page=1,mode='all',selectedId=null,editingId=null,searchTimer=null,toastTimer=null;
+const $=id=>document.getElementById(id);
+const els={list:$('list'),search:$('search'),count:$('count'),pageInfo:$('pageInfo'),prev:$('prevBtn'),next:$('nextBtn'),detail:$('detail'),layout:$('layout'),back:$('backBtn'),vcf:$('vcfInput'),progress:$('importProgress'),progressBar:$('progressBar'),progressText:$('progressText'),modal:$('modal'),name:$('nameInput'),phone:$('phoneInput'),note:$('noteInput'),modalTitle:$('modalTitle'),toast:$('toast')};
+function uid(){return 'c_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9)}
+function digits(v){return String(v||'').replace(/\D/g,'')}
+function cleanPhone(v){let s=String(v||'').trim().replace(/[^\d+]/g,'');if(s.indexOf('00')===0)s='+'+s.slice(2);return s}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function initial(v){let s=String(v||'?').trim();return s?s[0].toUpperCase():'?'}
+function showToast(m){els.toast.textContent=m;els.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('show'),2400)}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE)){const s=d.createObjectStore(STORE,{keyPath:'id'});s.createIndex('phone','phone',{unique:false});s.createIndex('deleted','deleted',{unique:false});s.createIndex('nameLower','nameLower',{unique:false})}};r.onsuccess=()=>{db=r.result;resolve(db)};r.onerror=()=>reject(r.error)})}
+function tx(modeName){return db.transaction(STORE,modeName).objectStore(STORE)}
+function getAllDB(){return new Promise((resolve,reject)=>{const r=tx('readonly').getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+function putDB(c){return new Promise((resolve,reject)=>{const r=tx('readwrite').put(c);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function putManyDB(arr){return new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite'),s=t.objectStore(STORE);for(const c of arr)s.put(c);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})}
+function deleteDB(id){return new Promise((resolve,reject)=>{const r=tx('readwrite').delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function normalize(c){return {...c,id:c.id||uid(),name:String(c.name||'Unnamed Contact').trim()||'Unnamed Contact',phone:cleanPhone(c.phone),note:String(c.note||''),deleted:!!c.deleted,updatedAt:c.updatedAt||Date.now(),nameLower:String(c.name||'').toLowerCase()}}
+async function load(){try{await openDB();items=(await getAllDB()).map(normalize)}catch(e){items=loadFallback()}render();}
+function loadFallback(){try{return JSON.parse(localStorage.getItem('wa_contact_fallback')||'[]').map(normalize)}catch(e){return []}}
+async function saveFallback(){localStorage.setItem('wa_contact_fallback',JSON.stringify(items))}
+async function save(c){c=normalize(c);items[items.findIndex(x=>x.id===c.id)]=c;if(db)await putDB(c);else await saveFallback()}
+async function addMany(arr){arr=arr.map(normalize);if(db)await putManyDB(arr);else{items.push(...arr);await saveFallback()}}
+function activeItems(){const q=els.search.value.trim().toLowerCase();let a=items.filter(c=>mode==='trash'?c.deleted:!c.deleted);if(q)a=a.filter(c=>c.nameLower.includes(q)||c.phone.toLowerCase().includes(q)||c.note.toLowerCase().includes(q));return a.sort((a,b)=>String(a.name).localeCompare(String(b.name),'en',{sensitivity:'base'}))}
+function render(){filtered=activeItems();const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));if(page>pages)page=pages;els.count.textContent=filtered.length;els.pageInfo.textContent=`Page ${page} / ${pages}`;els.prev.disabled=page<=1;els.next.disabled=page>=pages;const start=(page-1)*PAGE_SIZE;const part=filtered.slice(start,start+PAGE_SIZE);els.list.innerHTML=part.length?part.map(c=>`<div class="contact ${selectedId===c.id?'active':''}" data-id="${esc(c.id)}"><div class="avatar">${esc(initial(c.name))}</div><div class="info"><div class="name">${esc(c.name)} ${c.deleted?'<span class="trashBadge">TRASH</span>':''}</div><div class="phone">${esc(c.phone)}</div></div></div>`).join(''):`<div style="padding:35px;text-align:center;color:#667781">${mode==='trash'?'Trash is empty.':'No contacts found.'}</div>`;els.list.querySelectorAll('.contact').forEach(row=>row.onclick=()=>select(row.dataset.id));}
+function find(id){return items.find(c=>String(c.id)===String(id))||null}
+function select(id){const c=find(id);if(!c)return;selectedId=c.id;$('headAvatar').textContent=initial(c.name);$('headName').textContent=c.name;$('headPhone').textContent=c.phone;els.detail.querySelector('#detailBody').innerHTML=`<div class="contactCard"><div class="avatar" style="margin:auto">${esc(initial(c.name))}</div><h2>${esc(c.name)}</h2><p>${esc(c.phone)}</p>${c.note?`<p class="muted">📝 ${esc(c.note)}</p>`:''}<div class="cardActions">${c.deleted?'<button id="restoreBtn" class="primary">Restore</button><button id="permanentBtn" class="danger">Delete Permanently</button>':'<button id="editBtn">Edit</button><button id="deleteBtn" class="danger">Move to Trash</button>'}</div></div>`;$('editBtn')?.addEventListener('click',()=>openModal(c));$('deleteBtn')?.addEventListener('click',()=>softDelete(c));$('restoreBtn')?.addEventListener('click',()=>restore(c));$('permanentBtn')?.addEventListener('click',()=>permanentDelete(c));els.layout.classList.add('showDetail');render()}
+async function softDelete(c){if(!confirm(`Move ${c.name} to Trash?`))return;c.deleted=true;c.updatedAt=Date.now();await save(c);selectedId=null;resetDetail();render();showToast('Contact moved to Trash')}
+async function restore(c){c.deleted=false;c.updatedAt=Date.now();await save(c);selectedId=c.id;render();select(c.id);showToast('Contact restored')}
+async function permanentDelete(c){if(!confirm(`Permanently delete ${c.name}? This cannot be undone.`))return;await deleteDB(c.id);items=items.filter(x=>x.id!==c.id);if(!db)await saveFallback();selectedId=null;resetDetail();render();showToast('Contact permanently deleted')}
+function resetDetail(){ $('headAvatar').textContent='?';$('headName').textContent='Select a contact';$('headPhone').textContent='No contact selected';els.detail.querySelector('#detailBody').innerHTML='<div class="welcome"><div class="bigIcon">☎</div><h2>Contact Manager</h2><p>Select a contact from the list.</p></div>';els.layout.classList.remove('showDetail')}
+function openModal(c){editingId=c?c.id:null;els.modalTitle.textContent=c?'Edit Contact':'Add Contact';els.name.value=c?c.name:'';els.phone.value=c?c.phone:'';els.note.value=c?c.note:'';els.modal.classList.remove('hidden');setTimeout(()=>els.name.focus(),40)}
+function closeModal(){els.modal.classList.add('hidden');editingId=null}
+async function saveContact(){const name=els.name.value.trim(),phone=cleanPhone(els.phone.value),note=els.note.value.trim();if(!name)return showToast('Enter a name');if(digits(phone).length<7)return showToast('Enter a valid phone number');if(editingId){const c=find(editingId);if(!c)return;Object.assign(c,{name,phone,note,nameLower:name.toLowerCase(),updatedAt:Date.now()});await save(c);selectedId=c.id}else{const c=normalize({id:uid(),name,phone,note,deleted:false});items.push(c);await putDB(c).catch(()=>saveFallback());selectedId=c.id}closeModal();render();select(selectedId);showToast('Contact saved')}
+function parseField(line){const i=line.indexOf(':');if(i<0)return null;return {key:line.slice(0,i),value:line.slice(i+1)}}
+function decodeVCardValue(v,key){v=v.trim();if(/ENCODING=QUOTED-PRINTABLE/i.test(key)){try{v=v.replace(/=([0-9A-F]{2})/gi,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/=\r?\n/g,'')}catch(e){}}return v.replace(/\\n/gi,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\')}
+function parseBlock(block){let name='',phone='',note='';const lines=block.split(/\r?\n/);for(const line of lines){if(!line)continue;const f=parseField(line);if(!f)continue;if(/^FN(?:;|$)/i.test(f.key)&&!name)name=decodeVCardValue(f.value,f.key);else if(/^TEL(?:;|$)/i.test(f.key)&&!phone)phone=decodeVCardValue(f.value,f.key);else if(/^NOTE(?:;|$)/i.test(f.key)&&!note)note=decodeVCardValue(f.value,f.key)}phone=cleanPhone(phone);if(digits(phone).length<7)return null;return normalize({id:uid(),name:name||'Unnamed Contact',phone,note,deleted:false})}
+async function importVCF(file){const size=file.size;els.progress.classList.remove('hidden');els.progressBar.style.width='0%';els.progressText.textContent='Reading VCF…';let text='';const CHUNK=1024*1024;for(let pos=0;pos<size;pos+=CHUNK){text+=await file.slice(pos,Math.min(pos+CHUNK,size)).text();els.progressBar.style.width=Math.min(35,(pos+CHUNK)/size*35)+'%';await new Promise(requestAnimationFrame)}text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]/g,'');const blocks=text.split(/BEGIN:VCARD/i);const incoming=[];let duplicate=0;for(let i=1;i<blocks.length;i++){const end=blocks[i].search(/END:VCARD/i);if(end<0)continue;const c=parseBlock(blocks[i].slice(0,end));if(c)incoming.push(c);if(i%200===0){els.progressText.textContent=`Parsing contacts… ${i}/${blocks.length-1}`;els.progressBar.style.width=(35+Math.min(55,i/(blocks.length-1)*55))+'%';await new Promise(requestAnimationFrame)}}const seen=new Set(items.map(c=>digits(c.phone)));const unique=[];for(const c of incoming){const p=digits(c.phone);if(seen.has(p)){duplicate++;continue}seen.add(p);unique.push(c)}els.progressText.textContent='Saving contacts…';els.progressBar.style.width='95%';if(unique.length){items.push(...unique);await putManyDB(unique).catch(async()=>saveFallback())}els.progressBar.style.width='100%';await new Promise(r=>setTimeout(r,150));els.progress.classList.add('hidden');render();showToast(`Imported ${unique.length} new contacts${duplicate?` • ${duplicate} duplicates skipped`:''}`)}
+function exportVCF(){const list=items.filter(c=>!c.deleted);if(!list.length)return showToast('No contacts to export');let out='';for(const c of list){out+='BEGIN:VCARD\r\nVERSION:3.0\r\nFN:'+vcfEsc(c.name)+'\r\nTEL;TYPE=CELL:'+c.phone+'\r\n';if(c.note)out+='NOTE:'+vcfEsc(c.note)+'\r\n';out+='END:VCARD\r\n'}download(out,'whatsapp-contacts.vcf','text/vcard');showToast('VCF exported')}
+function vcfEsc(v){return String(v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,')}
+function backup(){download(JSON.stringify(items,null,2),'whatsapp-contact-backup.json','application/json');showToast('Backup downloaded')}
+function download(text,name,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([text],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function openWA(withMessage){if(!selectedId)return showToast('Select a contact first');const c=find(selectedId);if(!c||c.deleted)return showToast('Restore the contact first');const n=digits(c.phone);if(n.length<7)return showToast('Invalid phone number');let u='https://wa.me/'+n;if(withMessage){const t=$('message').value.trim();if(t)u+='?text='+encodeURIComponent(t)}window.open(u,'_blank')}
+$('addBtn').onclick=()=>openModal(null);$('cancelBtn').onclick=closeModal;$('saveBtn').onclick=saveContact;$('exportBtn').onclick=exportVCF;$('backupBtn').onclick=backup;$('waBtn').onclick=()=>openWA(false);$('sendBtn').onclick=()=>openWA(true);els.vcf.onchange=async e=>{const f=e.target.files?.[0];if(f){try{await importVCF(f)}catch(err){els.progress.classList.add('hidden');showToast('VCF import failed')}}els.vcf.value=''};$('allTab').onclick=()=>{mode='all';page=1;$('allTab').classList.add('active');$('trashTab').classList.remove('active');render()};$('trashTab').onclick=()=>{mode='trash';page=1;$('trashTab').classList.add('active');$('allTab').classList.remove('active');render()};els.prev.onclick=()=>{if(page>1){page--;render();els.list.scrollTop=0}};els.next.onclick=()=>{if(page<Math.ceil(filtered.length/PAGE_SIZE)){page++;render();els.list.scrollTop=0}};els.search.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=1;render()},80)};$('clearSearch').onclick=()=>{els.search.value='';page=1;render();els.search.focus()};els.back.onclick=()=>els.layout.classList.remove('showDetail');$('themeBtn').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('wa_dark',document.body.classList.contains('dark')?'1':'0')};els.modal.onclick=e=>{if(e.target===els.modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.ctrlKey&&e.key==='Enter'&&!els.modal.classList.contains('hidden'))saveContact()});
+if(localStorage.getItem('wa_dark')==='1')document.body.classList.add('dark');load();
 })();
