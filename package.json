@@ -1,6 +1,6 @@
 {
   "name": "number-free-select",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "WhatsApp Contact Manager with fast VCF import and account-aware Android contact sync",
   "scripts": {
@@ -11,6 +11,6 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/android": "^7.4.3",
     "@capacitor/cli": "^7.4.3",
-    "@capgo/capacitor-contacts": "7.2.0"
+    "@capgo/capacitor-contacts": "^7.1.0"
   }
 }
