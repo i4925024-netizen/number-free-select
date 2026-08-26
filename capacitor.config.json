@@ -1,6 +1,6 @@
 {
-  "appId": "com.numberfreeselect.app",
-  "appName": "Number Free Select",
+  "appId": "com.whatsappcontactmanager.app",
+  "appName": "WhatsApp Contact Manager",
   "webDir": "www",
   "bundledWebRuntime": false
 }
