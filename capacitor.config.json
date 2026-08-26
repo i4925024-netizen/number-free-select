@@ -1,0 +1,6 @@
+{
+  "appId": "com.numberfreeselect.app",
+  "appName": "Number Free Select",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
