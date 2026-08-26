@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Number Free Select</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Number Free Select</h1>
+      <div class="subtitle">Character-level editor for numbers and large text</div>
+    </div>
+    <button id="themeBtn" class="icon-btn" title="Toggle dark mode">◐</button>
+  </header>
+
+  <nav class="toolbar" aria-label="Editor tools">
+    <button id="openBtn">Open TXT</button>
+    <button id="saveBtn">Save TXT</button>
+    <span class="sep"></span>
+    <button id="copyBtn">Copy</button>
+    <button id="cutBtn">Cut</button>
+    <button id="pasteBtn">Paste</button>
+    <button id="deleteBtn">Delete</button>
+    <span class="sep"></span>
+    <button id="findBtn">Find / Replace</button>
+    <button id="selectAllBtn">Select All</button>
+    <button id="clearBtn" class="danger">Clear</button>
+  </nav>
+
+  <section id="findPanel" class="find-panel hidden">
+    <input id="findInput" type="text" placeholder="Find..." autocomplete="off">
+    <input id="replaceInput" type="text" placeholder="Replace with..." autocomplete="off">
+    <button id="findNextBtn">Next</button>
+    <button id="findPrevBtn">Previous</button>
+    <button id="replaceBtn">Replace</button>
+    <button id="replaceAllBtn">Replace All</button>
+    <button id="closeFindBtn">Close</button>
+  </section>
+
+  <main class="workspace">
+    <div id="gutter" class="gutter" aria-hidden="true">1</div>
+    <div id="editor" class="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" data-placeholder="Paste or type your numbers here..."></div>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status">Ready</span>
+    <span id="stats">Lines: 0 | Characters: 0 | Selected: 0</span>
+  </footer>
+
+  <input id="fileInput" type="file" accept=".txt,text/plain" hidden>
+  <script src="app.js"></script>
+</body>
+</html>
