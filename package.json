@@ -1,8 +1,8 @@
 {
   "name": "number-free-select",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Character-level number and text editor for Android",
+  "description": "WhatsApp Contact Manager with native Android contact sync",
   "scripts": {
     "sync": "npx cap sync android",
     "build:apk": "cd android && ./gradlew assembleDebug"
@@ -10,6 +10,7 @@
   "dependencies": {
     "@capacitor/core": "^7.4.3",
     "@capacitor/android": "^7.4.3",
-    "@capacitor/cli": "^7.4.3"
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor-community/contacts": "^7.0.0"
   }
 }
