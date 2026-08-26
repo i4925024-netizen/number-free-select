@@ -9,18 +9,19 @@
 </head>
 <body>
 <div class="app">
-<header class="topbar"><button id="backBtn" class="back hidden" aria-label="Back">‹</button><div class="brand"><div class="logo">☎</div><div><b>WhatsApp Contact Manager</b><small>VCF • Contacts • Trash • WhatsApp</small></div></div><button id="themeBtn" class="icon">◐</button></header>
+<header class="topbar"><button id="backBtn" class="back hidden" aria-label="Back">‹</button><div class="brand"><div class="logo">☎</div><div><b>WhatsApp Contact Manager</b><small>VCF • Contacts • Sync • Trash • WhatsApp</small></div></div><button id="themeBtn" class="icon">◐</button></header>
 <div class="layout" id="layout">
 <section class="sidebar" id="sidebar">
-<div class="actions"><button id="addBtn" class="primary">＋ Contact</button><label class="primary fileBtn">Import VCF<input id="vcfInput" type="file" accept=".vcf,text/vcard"></label><button id="exportBtn">Export VCF</button><button id="backupBtn">Backup</button></div>
+<div class="actions"><button id="addBtn" class="primary">＋ Contact</button><label class="primary fileBtn">Import VCF<input id="vcfInput" type="file" accept=".vcf,text/vcard"></label><button id="syncBtn" class="primary">↻ Sync to Phone</button><button id="exportBtn">Export VCF</button><button id="backupBtn">Backup</button></div>
 <div id="importProgress" class="progressWrap hidden"><div id="progressText">Preparing import…</div><div class="progress"><i id="progressBar"></i></div></div>
+<div id="syncProgress" class="progressWrap hidden"><div id="syncText">Preparing phone sync…</div><div class="progress"><i id="syncBar"></i></div></div>
 <div class="tabs"><button id="allTab" class="active">All</button><button id="trashTab">Trash</button></div>
 <div class="searchRow"><input id="search" placeholder="Search name or number…" autocomplete="off"><button id="clearSearch" title="Clear">×</button></div>
 <div class="countRow"><span id="count">0</span> contacts <span id="pageInfo"></span></div>
 <div id="list" class="list"></div>
 <div class="pager"><button id="prevBtn">‹ Previous</button><button id="nextBtn">Next ›</button></div>
 </section>
-<section class="detail" id="detail"><div class="detailHead"><div class="avatar" id="headAvatar">?</div><div class="meta"><b id="headName">Select a contact</b><span id="headPhone">No contact selected</span></div><button id="waBtn" class="primary">WhatsApp</button></div><div id="detailBody" class="detailBody"><div class="welcome"><div class="bigIcon">☎</div><h2>Contact Manager</h2><p>Import a VCF, add a contact, or select one from the list.</p><p class="muted">Contacts are stored locally on this device.</p></div></div><div class="composer"><textarea id="message" rows="1" placeholder="Message for WhatsApp…"></textarea><button id="sendBtn" class="primary">➤</button></div></section>
+<section class="detail" id="detail"><div class="detailHead"><div class="avatar" id="headAvatar">?</div><div class="meta"><b id="headName">Select a contact</b><span id="headPhone">No contact selected</span></div><button id="waBtn" class="primary">WhatsApp</button></div><div id="detailBody" class="detailBody"><div class="welcome"><div class="bigIcon">☎</div><h2>Contact Manager</h2><p>Import a VCF, add a contact, sync it to the phone, or select one from the list.</p><p class="muted">Contacts are stored locally and can be synced to the Android phone contacts.</p></div></div><div class="composer"><textarea id="message" rows="1" placeholder="Message for WhatsApp…"></textarea><button id="sendBtn" class="primary">➤</button></div></section>
 </div></div>
 <div id="modal" class="modal hidden"><div class="modalBox"><h2 id="modalTitle">Add Contact</h2><label>Name<input id="nameInput" autocomplete="off"></label><label>Phone / WhatsApp<input id="phoneInput" inputmode="tel" placeholder="+923001234567" autocomplete="off"></label><label>Note<textarea id="noteInput" rows="3"></textarea></label><div class="modalActions"><button id="cancelBtn">Cancel</button><button id="saveBtn" class="primary">Save</button></div></div></div>
 <div id="toast" class="toast"></div><script src="app.js"></script>
