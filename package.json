@@ -1,8 +1,8 @@
 {
   "name": "number-free-select",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "WhatsApp Contact Manager with native Android contact sync",
+  "description": "WhatsApp Contact Manager with fast VCF import and account-aware Android contact sync",
   "scripts": {
     "sync": "npx cap sync android",
     "build:apk": "cd android && ./gradlew assembleDebug"
@@ -11,6 +11,6 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/android": "^7.4.3",
     "@capacitor/cli": "^7.4.3",
-    "@capacitor-community/contacts": "^7.0.0"
+    "@capgo/capacitor-contacts": "7.2.0"
   }
 }
