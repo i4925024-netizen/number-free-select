@@ -1,56 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
-  <title>Number Free Select</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#075e54">
+<title>WhatsApp Contact Manager</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>Number Free Select</h1>
-      <div class="subtitle">Character-level editor for numbers and large text</div>
-    </div>
-    <button id="themeBtn" class="icon-btn" title="Toggle dark mode">◐</button>
-  </header>
-
-  <nav class="toolbar" aria-label="Editor tools">
-    <button id="openBtn">Open TXT</button>
-    <button id="saveBtn">Save TXT</button>
-    <span class="sep"></span>
-    <button id="copyBtn">Copy</button>
-    <button id="cutBtn">Cut</button>
-    <button id="pasteBtn">Paste</button>
-    <button id="deleteBtn">Delete</button>
-    <span class="sep"></span>
-    <button id="findBtn">Find / Replace</button>
-    <button id="selectAllBtn">Select All</button>
-    <button id="clearBtn" class="danger">Clear</button>
-  </nav>
-
-  <section id="findPanel" class="find-panel hidden">
-    <input id="findInput" type="text" placeholder="Find..." autocomplete="off">
-    <input id="replaceInput" type="text" placeholder="Replace with..." autocomplete="off">
-    <button id="findNextBtn">Next</button>
-    <button id="findPrevBtn">Previous</button>
-    <button id="replaceBtn">Replace</button>
-    <button id="replaceAllBtn">Replace All</button>
-    <button id="closeFindBtn">Close</button>
-  </section>
-
-  <main class="workspace">
-    <div id="gutter" class="gutter" aria-hidden="true">1</div>
-    <div id="editor" class="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" data-placeholder="Paste or type your numbers here..."></div>
-  </main>
-
-  <footer class="statusbar">
-    <span id="status">Ready</span>
-    <span id="stats">Lines: 0 | Characters: 0 | Selected: 0</span>
-  </footer>
-
-  <input id="fileInput" type="file" accept=".txt,text/plain" hidden>
-  <script src="app.js"></script>
-</body>
-</html>
+<div class="app">
+<header class="topbar"><button id="backBtn" class="back hidden" aria-label="Back">‹</button><div class="brand"><div class="logo">☎</div><div><b>WhatsApp Contact Manager</b><small>VCF • Contacts • Trash • WhatsApp</small></div></div><button id="themeBtn" class="icon">◐</button></header>
+<div class="layout" id="layout">
+<section class="sidebar" id="sidebar">
+<div class="actions"><button id="addBtn" class="primary">＋ Contact</button><label class="primary fileBtn">Import VCF<input id="vcfInput" type="file" accept=".vcf,text/vcard"></label><button id="exportBtn">Export VCF</button><button id="backupBtn">Backup</button></div>
+<div id="importProgress" class="progressWrap hidden"><div id="progressText">Preparing import…</div><div class="progress"><i id="progressBar"></i></div></div>
+<div class="tabs"><button id="allTab" class="active">All</button><button id="trashTab">Trash</button></div>
+<div class="searchRow"><input id="search" placeholder="Search name or number…" autocomplete="off"><button id="clearSearch" title="Clear">×</button></div>
+<div class="countRow"><span id="count">0</span> contacts <span id="pageInfo"></span></div>
+<div id="list" class="list"></div>
+<div class="pager"><button id="prevBtn">‹ Previous</button><button id="nextBtn">Next ›</button></div>
+</section>
+<section class="detail" id="detail"><div class="detailHead"><div class="avatar" id="headAvatar">?</div><div class="meta"><b id="headName">Select a contact</b><span id="headPhone">No contact selected</span></div><button id="waBtn" class="primary">WhatsApp</button></div><div id="detailBody" class="detailBody"><div class="welcome"><div class="bigIcon">☎</div><h2>Contact Manager</h2><p>Import a VCF, add a contact, or select one from the list.</p><p class="muted">Contacts are stored locally on this device.</p></div></div><div class="composer"><textarea id="message" rows="1" placeholder="Message for WhatsApp…"></textarea><button id="sendBtn" class="primary">➤</button></div></section>
+</div></div>
+<div id="modal" class="modal hidden"><div class="modalBox"><h2 id="modalTitle">Add Contact</h2><label>Name<input id="nameInput" autocomplete="off"></label><label>Phone / WhatsApp<input id="phoneInput" inputmode="tel" placeholder="+923001234567" autocomplete="off"></label><label>Note<textarea id="noteInput" rows="3"></textarea></label><div class="modalActions"><button id="cancelBtn">Cancel</button><button id="saveBtn" class="primary">Save</button></div></div></div>
+<div id="toast" class="toast"></div><script src="app.js"></script>
+</body></html>
